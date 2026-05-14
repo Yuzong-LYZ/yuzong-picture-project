@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env.local
+.env.*.local
