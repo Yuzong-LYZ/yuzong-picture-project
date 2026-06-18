@@ -3,14 +3,14 @@ package com.yuzong.yuzongpicturebackend.exception;
 import lombok.Getter;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/11 23:18
- * @author：Yuzong
- * @description：异常枚举类
+ * @author : Yuzong
+ * 异常枚举类
+ * @date 2026/5/11 23:18
  **/
 @Getter   //这里导入的是lombok的
 public enum ErrorCode {
 
+    //    这个错误码和message是给前端控制台和后端日志查看的，前端不会看到
     SUCCESS(0, "ok"),
     PARAMS_ERROR(40000, "请求参数错误"),
     NOT_LOGIN_ERROR(40100, "未登录"),

@@ -3,10 +3,10 @@ package com.yuzong.yuzongpicturebackend.common;
 import com.yuzong.yuzongpicturebackend.exception.ErrorCode;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/11 23:48
- * @author：Yuzong
- * @description：统一结果工具类：简化 BaseResponse 的创建过程
+ * @author : Yuzong
+ * 统一结果工具类：简化 BaseResponse 的创建过程；
+ * 很复杂？讲人话：ResultUtils他其实实际上是将按照BaseResponse的格式，将数据返回给前端的
+ * @date 2026/5/11 23:48
  **/
 public class ResultUtils {
 

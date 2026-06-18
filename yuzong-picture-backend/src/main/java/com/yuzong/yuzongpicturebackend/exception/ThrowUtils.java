@@ -1,10 +1,9 @@
 package com.yuzong.yuzongpicturebackend.exception;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/11 23:24
- * @author：Yuzong
- * @description：异常抛出工具类
+ * @author : Yuzong
+ * 异常抛出工具类
+ * @date 2026/5/11 23:24
  **/
 public class ThrowUtils {
 

@@ -7,10 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/12 00:10
- * @author：Yuzong
- * @description：
+ * @author : Yuzong
+ * @date 2026/5/12 00:10
+ *
  **/
 @RestController
 @RequestMapping("/")

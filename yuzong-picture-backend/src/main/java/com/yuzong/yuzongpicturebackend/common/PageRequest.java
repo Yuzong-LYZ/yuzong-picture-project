@@ -3,10 +3,9 @@ package com.yuzong.yuzongpicturebackend.common;
 import lombok.Data;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/12 00:03
- * @author：Yuzong
- * @description：分页请求包装类
+ * @author : Yuzong
+ * 分页请求包装类
+ * @date 2026/5/12 00:03
  **/
 @Data
 public class PageRequest {

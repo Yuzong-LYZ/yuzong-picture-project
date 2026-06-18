@@ -7,10 +7,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/11 23:55
- * @author：Yuzong
- * @description：全局异常处理器：防止服务器的报错信息返回前端。
+ * @author : Yuzong
+ * 全局异常处理器：防止服务器的报错信息返回前端。
+ * @date 2026/5/11 23:55
  **/
 @RestControllerAdvice
 @Slf4j

@@ -5,10 +5,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/12 00:07
- * @author：Yuzong
- * @description：全局跨域配置
+ * @author : Yuzong
+ * 全局跨域配置
+ * @date 2026/5/12 00:07
  **/
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {

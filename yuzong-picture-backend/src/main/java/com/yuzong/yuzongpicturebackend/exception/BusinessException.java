@@ -3,10 +3,9 @@ package com.yuzong.yuzongpicturebackend.exception;
 import lombok.Getter;
 
 /**
- * @projectName：yuzong-picture-backend
- * @date_time：2026/5/11 23:21
- * @author：Yuzong
- * @description： 自定义业务异常
+ * @author : Yuzong
+ * 自定义业务异常
+ * @date 2026/5/11 23:21
  **/
 @Getter
 public class BusinessException extends RuntimeException {
