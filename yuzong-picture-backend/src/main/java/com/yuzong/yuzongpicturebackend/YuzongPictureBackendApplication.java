@@ -1,5 +1,6 @@
 package com.yuzong.yuzongpicturebackend;
 
+import org.apache.shardingsphere.spring.boot.ShardingSphereAutoConfiguration;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 @MapperScan("com.yuzong.yuzongpicturebackend.mapper")
 @EnableAspectJAutoProxy(exposeProxy = true)
-@SpringBootApplication
+@SpringBootApplication(exclude = {ShardingSphereAutoConfiguration.class}) // 括号内为禁止分库
 public class YuzongPictureBackendApplication {
 
     public static void main(String[] args) {

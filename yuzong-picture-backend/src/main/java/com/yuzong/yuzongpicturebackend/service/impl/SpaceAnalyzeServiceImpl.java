@@ -18,6 +18,7 @@ import com.yuzong.yuzongpicturebackend.service.PictureService;
 import com.yuzong.yuzongpicturebackend.service.SpaceAnalyzeService;
 import com.yuzong.yuzongpicturebackend.service.SpaceService;
 import com.yuzong.yuzongpicturebackend.service.UserService;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  * @date 2026/6/13 18:26
  *
  **/
+@Service  // 补充：之前忘记加了
 public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space> implements SpaceAnalyzeService {
     @Resource
     private UserService userService;

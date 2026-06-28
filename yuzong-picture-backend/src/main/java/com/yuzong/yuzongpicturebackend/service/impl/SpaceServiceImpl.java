@@ -9,18 +9,24 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuzong.yuzongpicturebackend.exception.BusinessException;
 import com.yuzong.yuzongpicturebackend.exception.ErrorCode;
 import com.yuzong.yuzongpicturebackend.exception.ThrowUtils;
+import com.yuzong.yuzongpicturebackend.manager.sharding.DynamicShardingManager;
 import com.yuzong.yuzongpicturebackend.mapper.SpaceMapper;
 import com.yuzong.yuzongpicturebackend.model.dto.sapce.SpaceAddRequest;
 import com.yuzong.yuzongpicturebackend.model.dto.sapce.SpaceQueryRequest;
 import com.yuzong.yuzongpicturebackend.model.entity.Space;
+import com.yuzong.yuzongpicturebackend.model.entity.SpaceUser;
 import com.yuzong.yuzongpicturebackend.model.entity.User;
 import com.yuzong.yuzongpicturebackend.model.enums.SpaceLevelEnum;
+import com.yuzong.yuzongpicturebackend.model.enums.SpaceRoleEnum;
 import com.yuzong.yuzongpicturebackend.model.enums.SpaceTypeEnum;
 import com.yuzong.yuzongpicturebackend.model.vo.SpaceVO;
 import com.yuzong.yuzongpicturebackend.model.vo.UserVO;
 import com.yuzong.yuzongpicturebackend.service.SpaceService;
+import com.yuzong.yuzongpicturebackend.service.SpaceUserService;
 import com.yuzong.yuzongpicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -46,6 +52,12 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
 
     @Resource
     private TransactionTemplate transactionTemplate;  // 事务模板
+
+    @Resource
+    private SpaceUserService spaceUserService;
+//    @Resource
+//    @Lazy
+//    private DynamicShardingManager dynamicShardingManager;
 
     /**
      * 校验空间权限
@@ -114,6 +126,20 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 // 7.2 保存空间到数据库
                 boolean result = this.save(space);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "空间创建失败");
+
+                // 补充：如果是团队空间，关联新增团队成员记录
+                if (SpaceTypeEnum.TEAM.getValue() == spaceAddRequest.getSpaceType()) {
+                    SpaceUser spaceUser = new SpaceUser();
+                    spaceUser.setSpaceId(space.getId()); // 设置空间ID
+                    spaceUser.setUserId(userId); // 设置用户ID
+                    spaceUser.setSpaceRole(SpaceRoleEnum.ADMIN.getValue()); // 创建者默认管理员
+
+                    result = spaceUserService.save(spaceUser); // 保存团队成员记录
+                    ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
+                }
+                // 补充：关于分表的补充：创建分表
+                //      仅对团队空间生效
+//                dynamicShardingManager.createSpacePictureTable(space);
 
                 // 7.3 返回新创建的空间ID
                 return space.getId();

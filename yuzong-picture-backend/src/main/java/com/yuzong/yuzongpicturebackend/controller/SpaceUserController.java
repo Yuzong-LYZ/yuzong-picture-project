@@ -7,6 +7,8 @@ import com.yuzong.yuzongpicturebackend.common.ResultUtils;
 import com.yuzong.yuzongpicturebackend.exception.BusinessException;
 import com.yuzong.yuzongpicturebackend.exception.ErrorCode;
 import com.yuzong.yuzongpicturebackend.exception.ThrowUtils;
+import com.yuzong.yuzongpicturebackend.manager.auth.annotation.SaSpaceCheckPermission;
+import com.yuzong.yuzongpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.yuzong.yuzongpicturebackend.model.dto.spaceuser.SpaceUserAddRequest;
 import com.yuzong.yuzongpicturebackend.model.dto.spaceuser.SpaceUserEditRequest;
 import com.yuzong.yuzongpicturebackend.model.dto.spaceuser.SpaceUserQueryRequest;
@@ -26,6 +28,9 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+/**
+ * 空间成员管理
+ */
 @RestController
 @RequestMapping("/spaceUser")
 @Slf4j
@@ -45,6 +50,7 @@ public class SpaceUserController {
      * @return 成功返回新创建的空间用户记录 ID
      */
     @PostMapping("/add")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<Long> addSpaceUser(@RequestBody SpaceUserAddRequest spaceUserAddRequest, HttpServletRequest request) {
         // 1. 基础参数非空校验
         ThrowUtils.throwIf(spaceUserAddRequest == null, ErrorCode.PARAMS_ERROR);
@@ -64,6 +70,7 @@ public class SpaceUserController {
      * @return 成功返回 true
      */
     @PostMapping("/delete")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<Boolean> deleteSpaceUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         // 1. 基础参数校验：对象非空且 ID 必须大于 0
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -89,6 +96,7 @@ public class SpaceUserController {
      * @return 成功返回 SpaceUser 实体信息
      */
     @PostMapping("/get")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<SpaceUser> getSpaceUser(@RequestBody SpaceUserQueryRequest spaceUserQueryRequest) {
         // 1. 基础参数校验
         ThrowUtils.throwIf(spaceUserQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -113,6 +121,7 @@ public class SpaceUserController {
      * @return 成功返回 SpaceUserVO 列表（经过脱敏和格式化）
      */
     @PostMapping("/list")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<List<SpaceUserVO>> listSpaceUser(@RequestBody SpaceUserQueryRequest spaceUserQueryRequest, HttpServletRequest request) {
         // 1. 基础参数校验
         ThrowUtils.throwIf(spaceUserQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -134,6 +143,7 @@ public class SpaceUserController {
      * @return 成功返回 true
      */
     @PostMapping("/edit")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public BaseResponse<Boolean> editSpaceUser(@RequestBody SpaceUserEditRequest spaceUserEditRequest, HttpServletRequest request) {
         // 1. 基础参数校验
         if (spaceUserEditRequest == null || spaceUserEditRequest.getId() <= 0) {

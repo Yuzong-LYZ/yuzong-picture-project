@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuzong.yuzongpicturebackend.constant.UserConstant;
 import com.yuzong.yuzongpicturebackend.exception.BusinessException;
 import com.yuzong.yuzongpicturebackend.exception.ErrorCode;
+import com.yuzong.yuzongpicturebackend.manager.auth.StpKit;
 import com.yuzong.yuzongpicturebackend.mapper.UserMapper;
 import com.yuzong.yuzongpicturebackend.model.dto.user.UserQueryRequest;
 import com.yuzong.yuzongpicturebackend.model.entity.User;
@@ -25,6 +26,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.yuzong.yuzongpicturebackend.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * @author yuzong
@@ -145,7 +148,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 //  翻译：将 user 这个完整的 User 对象，以 "user_login"（即 UserConstant.USER_LOGIN_STATE 的值）作为名字，存储到当前用户的 session 中
 //       获取这个已登录的信息：User loginUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
 //        这是保证能持续登录，以及跳转页面也能登录的功能
-        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+
+        // 补充： 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        // 备注：这里使用 Sa-token 记录用户登录态，是为了方便后续的空间鉴权。而不是说一定要2种记录登录态的方式都要写。
+        //      严格来说，这里双写一来是为了方便后续的空间鉴权。二来是兼容之前的登录态记录方式。
+        //      因为：传统 Session 做细粒度权限（比如判断是不是空间管理员）太麻烦了，于是引入了 Sa-Token。
+        // 步骤 A：在 Sa-Token 的 "SPACE"（空间）逻辑分区中，标记该用户 ID 为已登录状态，并下发 Token
+        StpKit.SPACE.login(user.getId());
+
+        // 步骤 B：将完整的 User 对象缓存到 Sa-Token 的 Session 中
+        // 目的：后续空间鉴权时，可直接从内存中获取 User 对象，避免频繁查询数据库
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
+
 
         log.info("用户登录成功");
         // 5. 返回脱敏后的用户信息
@@ -182,7 +197,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public User getLoginUser(HttpServletRequest request) {
 //        判断是否已经登录
-        User currentUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         if (currentUser == null || currentUser.getId() == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
@@ -200,12 +215,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean userLogout(HttpServletRequest request) {
         //        判断是否已经登录，如果没有登录，则返回错误
-        User currentUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "未登录");
         }
 //        移除登录态
-        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
 

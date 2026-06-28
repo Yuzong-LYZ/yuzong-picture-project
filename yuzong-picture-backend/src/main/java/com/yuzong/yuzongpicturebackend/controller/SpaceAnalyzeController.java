@@ -19,6 +19,10 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+/**
+ * 空间分析数据
+ */
+
 @RestController
 @RequestMapping("/space/analyze")
 public class SpaceAnalyzeController {

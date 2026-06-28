@@ -23,6 +23,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 
+/**
+ * 用户接口
+ *
+ * @author yuzong
+ */
 @RestController
 @RequestMapping("/user")
 public class UserController {

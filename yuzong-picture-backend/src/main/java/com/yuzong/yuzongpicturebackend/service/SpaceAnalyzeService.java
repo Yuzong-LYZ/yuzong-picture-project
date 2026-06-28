@@ -5,6 +5,7 @@ import com.yuzong.yuzongpicturebackend.model.dto.sapce.analyze.*;
 import com.yuzong.yuzongpicturebackend.model.entity.Space;
 import com.yuzong.yuzongpicturebackend.model.entity.User;
 import com.yuzong.yuzongpicturebackend.model.vo.space.analyze.*;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 

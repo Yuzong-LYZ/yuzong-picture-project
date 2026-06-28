@@ -22,6 +22,7 @@ import com.yuzong.yuzongpicturebackend.service.SpaceService;
 import com.yuzong.yuzongpicturebackend.service.SpaceUserService;
 import com.yuzong.yuzongpicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -42,8 +43,9 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
         implements SpaceUserService {
     @Resource
     private UserService userService;
-    ;
+
     @Resource
+    @Lazy //补充： 延迟加载
     private SpaceService spaceService;
 
     /**

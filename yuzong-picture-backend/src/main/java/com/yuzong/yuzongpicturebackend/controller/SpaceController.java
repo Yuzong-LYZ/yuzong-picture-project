@@ -9,6 +9,7 @@ import com.yuzong.yuzongpicturebackend.constant.UserConstant;
 import com.yuzong.yuzongpicturebackend.exception.BusinessException;
 import com.yuzong.yuzongpicturebackend.exception.ErrorCode;
 import com.yuzong.yuzongpicturebackend.exception.ThrowUtils;
+import com.yuzong.yuzongpicturebackend.manager.auth.SpaceUserAuthManager;
 import com.yuzong.yuzongpicturebackend.model.dto.sapce.*;
 import com.yuzong.yuzongpicturebackend.model.entity.Space;
 import com.yuzong.yuzongpicturebackend.model.entity.User;
@@ -19,6 +20,7 @@ import com.yuzong.yuzongpicturebackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -29,10 +31,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author : Yuzong
- * @date 2026/5/24 09:34
- *
- **/
+ * 空间管理
+ */
 @Slf4j
 @RestController
 @RequestMapping("/space")
@@ -42,6 +42,8 @@ public class SpaceController {
     private UserService userService;
     @Resource
     private SpaceService spaceService;
+    @Autowired
+    private SpaceUserAuthManager spaceUserAuthManager;
 
 
     /**
@@ -152,9 +154,13 @@ public class SpaceController {
         // 查询数据库
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
+        // 补充：
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);// 将space转化为spaceVO
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);// 获取权限列表
+        spaceVO.setPermissionList(permissionList); //设置权限列表
 
         // 获取封装类
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        return ResultUtils.success(spaceVO);
     }
 
     /**

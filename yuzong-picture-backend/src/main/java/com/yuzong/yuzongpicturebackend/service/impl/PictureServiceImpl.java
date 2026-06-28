@@ -86,8 +86,26 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long pictureId = createPictureOutPaintingTaskRequest.getPictureId();
         Picture picture = Optional.ofNullable(this.getById(pictureId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR));
+
+        //todo：ddd待补充： 校验图片尺寸（阿里云扩图 API 要求：单边长度 [512, 4096] 像素）
+        Integer picWidth = picture.getPicWidth();
+        Integer picHeight = picture.getPicHeight();
+        if (picWidth != null && picHeight != null) {
+            int minSide = Math.min(picWidth, picHeight);
+            int maxSide = Math.max(picWidth, picHeight);
+            if (minSide < 512) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                        "图片尺寸过小，扩图要求每条边至少 512px，当前短边为 " + minSide + "px，请上传更大的图片");
+            }
+            if (maxSide > 4096) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                        "图片尺寸过大，扩图要求每条边不超过 4096px，当前长边为 " + maxSide + "px");
+            }
+        }
+
         // 权限校验
-        checkPictureAuth(loginUser, picture);
+        // 已经改为注解鉴权，所以下面这个注释掉，这个方法和接口也会注释
+//        checkPictureAuth(loginUser, picture);
         // 构造请求参数
         CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest(); // 创建扩图任务请求
         CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input(); // 需要扩图的图片url
@@ -98,6 +116,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return aliYunAiApi.createOutPaintingTask(taskRequest);
     }
 
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchRequest 图片批量编辑请求参数
+     * @param loginUser                 登录用户
+     */
     @Override
     public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
         // 获取参数
@@ -188,7 +212,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture oldPicture = this.getById(id);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验权限
-        checkPictureAuth(loginUser, oldPicture);
+        // 已经改为注解鉴权，所以下面这个注释掉，这个方法和接口也会注释
+//        checkPictureAuth(loginUser, oldPicture);
         // 补充审核参数
         this.fillReviewParams(picture, loginUser);
         // 操作数据库
@@ -210,9 +235,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture oldPicture = this.getById(pictureId);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验权限
-        checkPictureAuth(loginUser, oldPicture);
-        // 校验权限
-        checkPictureAuth(loginUser, oldPicture);
+        // 已经改为注解鉴权，所以下面这个注释掉，这个方法和接口也会注释
+//        checkPictureAuth(loginUser, oldPicture);
+
         // 开启事务
         transactionTemplate.execute(status -> {
             // 操作数据库
@@ -235,8 +260,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     /**
-     * 校验权限，todo：这里应该还会完善，现在感觉有点多此一举。
+     * 校验权限，
      */
+    // 废弃
+    @Deprecated
     @Override
     public void checkPictureAuth(User loginUser, Picture picture) {
         Long spaceId = picture.getSpaceId();
