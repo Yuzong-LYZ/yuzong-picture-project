@@ -1,0 +1,118 @@
+#下面这些内容是为了让MyBatis映射
+#指定Mybatis的Mapper文件
+#mybatis.mapper-locations=classpath:mappers/*xml
+#指定Mybatis的实体目录
+#mybatis.type-aliases-package=com.yuzong.yuzongpicturebackend.mybatis.entity
+# 应用服务 WEB 访问端口
+#server.port=8080
+
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+
+spring:
+  application:
+    name: yuzong-picture-backend-DDD
+
+  #数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/yuzong_picture
+    username: root
+    password: 122333123
+  # Redis 配置
+  redis:
+    # 这里指的是0库
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
+  # session 配置
+  session:
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
+
+  servlet:
+    # 开放更大的文件上传
+    multipart:
+      max-file-size: 10MB
+
+  # 空间图片分表
+  shardingsphere:
+    datasource:
+      names: yuzong_picture
+      yuzong_picture:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/yuzong_picture?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+        username: root
+        password: 122333123
+    rules:
+      sharding:
+        tables:
+          picture:
+            actual-data-nodes: yuzong_picture.picture  # 动态分表
+            table-strategy:
+              standard:
+                sharding-column: spaceId
+                sharding-algorithm-name: picture_sharding_algorithm  # 使用自定义分片算法
+        sharding-algorithms:
+          picture_sharding_algorithm:
+            type: CLASS_BASED
+            props:
+              strategy: standard
+              algorithmClassName: com.yuzong.yuzongpicture.shared.sharding.PictureShardingAlgorithm
+    props:
+      sql-show: true
+
+
+
+mybatis-plus:
+  configuration:
+    #      下划线转驼峰命名
+    map-underscore-to-camel-case: false
+    #      仅在开发环境中打印日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    enable-sql-runner: true # 想要使用SqlRunner，必须开启
+    db-config:
+      logic-delete-field: isDelete  # 全局逻辑删除字段名
+      logic-delete-value: 1  # 逻辑已删除值（默认1）
+      logic-not-delete-value: 0  #逻辑未删除值（默认0）
+#   配置接口文档
+knife4j:
+  enable: true
+  openapi:
+    title: 接口文档
+    version: 1.0
+    group:
+      default:
+        #        group-name: 默认分组
+        api-rule: package
+        api-rule-resources:
+          - com.yuzong.yuzongpicture.interfaces.controller
+
+# 阿里云 对象存储oss配置
+#aliyun:
+#  oss:
+#    # 对应腾讯云配置里的 host，但在阿里云叫 endpoint
+#    # 格式通常是 https://oss-<你的地域>.aliyuncs.com
+#    endpoint:
+#
+#    # 对应腾讯云配置里的 secretId。在阿里云叫 accessKeyId
+#    accessKeyId:
+#    # 对应腾讯云配置里的 secretKey。在阿里云叫 accessKeySecret
+#    accessKeySecret:
+#
+#    # 这个是一样的 你的存储空间名称
+#    bucketName:
+
+# 阿里云 AI 配置
+#aliYunAi:
+#  apiKey: xxxx
