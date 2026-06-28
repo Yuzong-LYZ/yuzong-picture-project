@@ -5,7 +5,7 @@
         <router-link to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.png" alt="logo" />
-            <div class="title">鱼皮云图库</div>
+            <div class="title">智能协同云图库</div>
           </div>
         </router-link>
       </a-col>
@@ -18,14 +18,16 @@
         />
       </a-col>
       <!-- 用户信息展示栏 -->
-      <a-col flex="120px">
+      <a-col flex="auto" style="max-width: 200px">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
-              <a-space>
+              <div class="user-info-wrapper">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                {{ loginUserStore.loginUser.userName ?? '无名' }}
-              </a-space>
+                <span class="user-name" :title="loginUserStore.loginUser.userName ?? '无名'">{{
+                  loginUserStore.loginUser.userName ?? '无名'
+                }}</span>
+              </div>
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
@@ -47,6 +49,35 @@
           </div>
         </div>
       </a-col>
+      <!--      <a-col flex="120px">-->
+      <!--        <div class="user-login-status">-->
+      <!--          <div v-if="loginUserStore.loginUser.id">-->
+      <!--            <a-dropdown>-->
+      <!--              <a-space>-->
+      <!--                <a-avatar :src="loginUserStore.loginUser.userAvatar" />-->
+      <!--                {{ loginUserStore.loginUser.userName ?? 'Momo' }}-->
+      <!--              </a-space>-->
+      <!--              <template #overlay>-->
+      <!--                <a-menu>-->
+      <!--                  <a-menu-item>-->
+      <!--                    <router-link to="/my_space">-->
+      <!--                      <UserOutlined />-->
+      <!--                      我的空间-->
+      <!--                    </router-link>-->
+      <!--                  </a-menu-item>-->
+      <!--                  <a-menu-item @click="doLogout">-->
+      <!--                    <LogoutOutlined />-->
+      <!--                    退出登录-->
+      <!--                  </a-menu-item>-->
+      <!--                </a-menu>-->
+      <!--              </template>-->
+      <!--            </a-dropdown>-->
+      <!--          </div>-->
+      <!--          <div v-else>-->
+      <!--            <a-button type="primary" href="/user/login">登录</a-button>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--      </a-col>-->
     </a-row>
   </div>
 </template>
@@ -157,4 +188,35 @@ const doLogout = async () => {
 .logo {
   height: 48px;
 }
+/* 优化 */
+.user-login-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+}
+
+.user-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.user-info-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+  flex: 1;
+  min-width: 0;
+}
+
 </style>

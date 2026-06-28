@@ -66,26 +66,33 @@ const searchParams = reactive<API.PictureQueryRequest>({
 // 获取数据
 const fetchData = async () => {
   loading.value = true
-  // 转换搜索参数
-  const params = {
-    ...searchParams,
-    tags: [] as string[],
-  }
-  if (selectedCategory.value !== 'all') {
-    params.category = selectedCategory.value
-  }
-  // [true, false, false] => ['java']
-  selectedTagList.value.forEach((useTag, index) => {
-    if (useTag) {
-      params.tags.push(tagList.value[index])
+  // todo: 获取数据，这里添加了try catch，后续不需要，可以try删除，保留try的代码，然后删除catch的全部代码
+  try {
+    // 转换搜索参数
+    const params = {
+      ...searchParams,
+      tags: [] as string[],
     }
-  })
-  const res = await listPictureVoByPageUsingPost(params)
-  if (res.data.code === 0 && res.data.data) {
-    dataList.value = res.data.data.records ?? []
-    total.value = res.data.data.total ?? 0
-  } else {
-    message.error('获取数据失败，' + res.data.message)
+    if (selectedCategory.value !== 'all') {
+      params.category = selectedCategory.value
+    }
+    // [true, false, false] => ['java']
+    selectedTagList.value.forEach((useTag, index) => {
+      if (useTag) {
+        params.tags.push(tagList.value[index])
+      }
+    })
+    const res = await listPictureVoByPageUsingPost(params)
+    if (res.data.code === 0 && res.data.data) {
+      dataList.value = res.data.data.records ?? []
+      total.value = res.data.data.total ?? 0
+    } else {
+      message.error('获取数据失败，' + res.data.message)
+    }
+  } catch (error) {
+    console.error('获取数据失败', error)
+    dataList.value = []
+    total.value = 0
   }
   loading.value = false
 }
@@ -110,22 +117,48 @@ const doSearch = () => {
 }
 
 // 标签和分类列表
-const categoryList = ref<string[]>([])
+//todo：获取标签和分类选项，这里ref的value设置了默认值，接口失败时提供默认值。后期可以删除
+const categoryList = ref<string[]>(['摄影', '电商', '表情包', '素材', '海报'])
 const selectedCategory = ref<string>('all')
-const tagList = ref<string[]>([])
+const tagList = ref<string[]>([
+  '热门',
+  '高校',
+  '二次元',
+  '生活',
+  '高清',
+  '艺术',
+  '校园',
+  '背景',
+  '简历',
+  '创意',
+])
 const selectedTagList = ref<boolean[]>([])
+// const categoryList = ref<string[]>([])
+// const selectedCategory = ref<string>('all')
+// const tagList = ref<string[]>([])
+// const selectedTagList = ref<boolean[]>([])
 
 /**
  * 获取标签和分类选项
  * @param values
  */
 const getTagCategoryOptions = async () => {
-  const res = await listPictureTagCategoryUsingGet()
-  if (res.data.code === 0 && res.data.data) {
-    tagList.value = res.data.data.tagList ?? []
-    categoryList.value = res.data.data.categoryList ?? []
-  } else {
-    message.error('获取标签分类列表失败，' + res.data.message)
+  // todo: 获取标签和分类选项，这里添加了try catch，后续不需要，可以try删除，保留try的代码，然后删除catch的全部代码
+  try {
+    const res = await listPictureTagCategoryUsingGet()
+    if (res.data.code === 0 && res.data.data) {
+      tagList.value = res.data.data.tagList ?? []
+      categoryList.value = res.data.data.categoryList ?? []
+    } else {
+      message.error('获取标签分类列表失败，' + res.data.message)
+    }
+  } catch (error) {
+    console.warn('接口未就绪，使用默认分类和标签')
+    console.error('获取标签分类失败', error)
+    // 接口失败时保留默认值
+    // console.error('获取标签分类失败', error)
+    // tagList.value = []
+    // categoryList.value = []
   }
 }
 

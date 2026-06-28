@@ -32,7 +32,9 @@
         >
           空间分析
         </a-button>
-        <a-button v-if="canEditPicture" :icon="h(EditOutlined)" @click="doBatchEdit"> 批量编辑</a-button>
+        <a-button v-if="canEditPicture" :icon="h(EditOutlined)" @click="doBatchEdit">
+          批量编辑</a-button
+        >
         <a-tooltip
           :title="`占用空间 ${formatSize(space.totalSize)} / ${formatSize(space.maxSize)}`"
         >
@@ -116,6 +118,21 @@ const canEditPicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_EDI
 const canDeletePicture = createPermissionChecker(SPACE_PERMISSION_ENUM.PICTURE_DELETE)
 
 // -------- 获取空间详情 --------
+// const fetchSpaceDetail = async () => {
+//   try {
+//     const res = await getSpaceVoByIdUsingGet({
+//       id: props.id,
+//     })
+//     if (res.data.code === 0 && res.data.data) {
+//       space.value = res.data.data
+//     } else {
+//       message.error('获取空间详情失败，' + res.data.message)
+//     }
+//   } catch (e: any) {
+//     message.error('获取空间详情失败：' + e.message)
+//   }
+// }
+// -------- 获取空间详情 --------【优化版】
 const fetchSpaceDetail = async () => {
   try {
     const res = await getSpaceVoByIdUsingGet({
@@ -123,6 +140,9 @@ const fetchSpaceDetail = async () => {
     })
     if (res.data.code === 0 && res.data.data) {
       space.value = res.data.data
+      console.log('空间详情:', space.value)
+      console.log('权限列表:', space.value.permissionList)
+      console.log('是否可以上传:', canUploadPicture.value)
     } else {
       message.error('获取空间详情失败，' + res.data.message)
     }
