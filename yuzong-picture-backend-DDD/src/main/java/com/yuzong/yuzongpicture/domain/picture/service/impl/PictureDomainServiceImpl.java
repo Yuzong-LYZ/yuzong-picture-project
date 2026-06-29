@@ -4,6 +4,8 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSON;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yuzong.yuzongpicture.application.service.SpaceApplicationService;
@@ -38,6 +40,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -464,7 +469,7 @@ public class PictureDomainServiceImpl
 
     /**
      * 上传图片（批量）
-     *
+     * 备注：优化成功
      * @param pictureUploadByBatchRequest 图片上传（批量）请求参数
      * @param loginUser                   登录用户
      * @return
@@ -472,108 +477,237 @@ public class PictureDomainServiceImpl
     @Override
     public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
         // ============ 第一步：获取请求参数 ============
-        // 获取搜索关键词，比如 "风景"、"猫咪"
         String searchText = pictureUploadByBatchRequest.getSearchText();
-        // 获取要抓取的图片数量，比如 10
         Integer count = pictureUploadByBatchRequest.getCount();
-        // 校验需要获取数量不能超过30张（防止请求过多）
         ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
-        //  获取图片名称前缀；作用：如搜索蔡徐坤，可以设置名称前缀为坤，后续拼接后则图片名称为：坤1.jpg
-        //                      也可以设置前缀为搜索词，直接就是蔡徐坤1.jpg
         String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
-        // 如果前缀为空，则使用搜索词作为前缀
         if (StrUtil.isBlank(namePrefix)) {
             namePrefix = searchText;
         }
 
-        // ============ 第二步：构造Bing图片搜索URL ============
-        // 拼接Bing图片搜索的API地址
-        // 例如：https://cn.bing.com/images/async?q=风景&mmasync=1
-        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        // ============ 第二步：构造Bing图片搜索URL (修复点1：中文URL编码) ============
+        String fetchUrl;
+        try {
+            // 必须对中文进行 UTF-8 编码，否则 Bing 会识别乱码，返回奇怪的签名和Logo
+            String encodedText = URLEncoder.encode(searchText, StandardCharsets.UTF_8.name());
+            // 保留你原来能跑通的 async 接口，加上 first=1 确保从第一页开始
+            fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1&first=1", encodedText);
+        } catch (UnsupportedEncodingException e) {
+            log.error("URL编码失败", e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统内部错误");
+        }
 
         // ============ 第三步：请求Bing并获取HTML页面 ============
         Document document;
-        // 优化后：
         try {
-            // 设置连接超时时间为 10 秒，读取超时时间为 10 秒
             document = Jsoup.connect(fetchUrl)
                     .timeout(10000)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36") // 伪装浏览器
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9")
                     .get();
         } catch (IOException e) {
             log.error("获取页面失败，网络超时或被拒绝", e);
-            // 根据业务需求决定是抛出异常中断，还是返回空
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片搜索服务暂时不可用，请稍后重试");
         }
-//        try {
-//            // 使用jsoup发起HTTP请求，获取Bing搜索结果的HTML页面
-//            document = Jsoup.connect(fetchUrl).get();
-//        } catch (IOException e) {
-//            // 如果网络请求失败，记录错误日志
-//            log.error("获取页面失败", e);
-//            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
-//        }
 
         // ============ 第四步：从HTML中解析图片元素 ============
-        // 查找HTML中class为"dgControl"的div元素（这个div包含了所有搜索结果图片）
+        // 保留你原来的选择器，保证一定能抓到元素
         Element div = document.getElementsByClass("dgControl").first();
-        // 如果没找到这个div，说明页面结构不对
         if (ObjUtil.isNull(div)) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+            // 如果 dgControl 找不到，尝试备用容器
+            div = document.body();
         }
-        // 在div中查找所有class为"mimg"的img标签（这些就是图片元素）
+
+        // 查找所有包含图片的 a 标签 (class 为 iusc 或 iurl)
+        Elements imgLinkElements = div.select("a.iusc, a.iurl");
+        // 如果 a 标签找不到，降级使用你原来的 img 标签
         Elements imgElementList = div.select("img.mimg");
 
         // ============ 第五步：遍历图片并逐个上传 ============
-        int uploadCount = 0;  // 记录成功上传的图片数量
-        for (Element imgElement : imgElementList) {
-            // 从img标签中提取src属性（图片的URL地址）
-            String fileUrl = imgElement.attr("src");
+        int uploadCount = 0;
 
-            // 如果URL为空，跳过这张图片
+        // 优先尝试从 a 标签中提取【高清原图】
+        for (Element element : imgLinkElements) {
+            if (uploadCount >= count) break;
+
+            String fileUrl = null;
+            // Bing 把高清原图 URL 藏在 a 标签的 m 属性里，这是一个 JSON 字符串
+            String mAttr = element.attr("m");
+            if (StrUtil.isNotBlank(mAttr)) {
+                try {
+                    // 使用 Fastjson 解析 JSON 提取 murl (原图链接)
+                    JSONObject jsonObject = JSONUtil.parseObj(mAttr);
+                    fileUrl = jsonObject.getStr("murl");
+                } catch (Exception e) {
+                    log.warn("解析原图JSON失败, m属性: {}", mAttr);
+                }
+            }
+
+            // 如果原图链接为空，尝试获取缩略图作为兜底
             if (StrUtil.isBlank(fileUrl)) {
-                log.info("当前链接为空，已跳过: {}", fileUrl);
-                continue;
+                Element imgTag = element.selectFirst("img.mimg");
+                if (imgTag != null) {
+                    fileUrl = imgTag.attr("src");
+                }
             }
 
-            // 清理URL：去掉?后面的参数部分
-            // 例如：https://example.com/photo.jpg?param=123 -> https://example.com/photo.jpg
-            int questionMarkIndex = fileUrl.indexOf("?");
-            if (questionMarkIndex > -1) {
-                fileUrl = fileUrl.substring(0, questionMarkIndex);
-            }
-
-            // ============ 第六步：调用单张上传方法 ============
-            // 创建一个上传请求对象（id为空表示新增）
-            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
-            // 设置图片URL
-            pictureUploadRequest.setFileUrl(fileUrl);
-            // 设置图片名称，序号连续递增
-            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
-            try {
-                // 调用uploadPicture方法上传这张图片到OSS
-                PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
-                // 上传成功，记录日志
-                log.info("图片上传成功, id = {}", pictureVO.getId());
-                // 成功计数+1
+            // 执行上传
+            if (tryUploadPicture(fileUrl, namePrefix, uploadCount, loginUser)) {
                 uploadCount++;
-            } catch (Exception e) {
-                // 如果某张图片上传失败，记录错误但继续处理下一张
-                log.error("图片上传失败", e);
-                continue;
-            }
-
-            // ============ 第七步：检查是否达到指定数量 ============
-            // 如果已成功上传的图片数量达到了用户要求的数量，就停止
-            if (uploadCount >= count) {
-                break;
             }
         }
 
-        // ============ 第八步：返回结果 ============
-        // 返回实际成功上传的图片数量
+        // 如果 a 标签没抓够数量，降级使用 img 标签（你原来的逻辑）继续抓
+        if (uploadCount < count) {
+            for (Element imgElement : imgElementList) {
+                if (uploadCount >= count) break;
+
+                String fileUrl = imgElement.attr("src");
+
+                // 清理URL：去掉?后面的参数部分（保留你原来的清理逻辑）
+                if (StrUtil.isNotBlank(fileUrl)) {
+                    int questionMarkIndex = fileUrl.indexOf("?");
+                    if (questionMarkIndex > -1) {
+                        fileUrl = fileUrl.substring(0, questionMarkIndex);
+                    }
+                }
+
+                if (tryUploadPicture(fileUrl, namePrefix, uploadCount, loginUser)) {
+                    uploadCount++;
+                }
+            }
+        }
+
+        // ============ 第六步：返回结果 ============
         return uploadCount;
     }
+
+    /**
+     * 辅助方法：尝试上传单张图片
+     */
+    private boolean tryUploadPicture(String fileUrl, String namePrefix, int currentIndex, User loginUser) {
+        if (StrUtil.isBlank(fileUrl) || !fileUrl.startsWith("http")) {
+            log.info("当前链接无效，已跳过: {}", fileUrl);
+            return false;
+        }
+
+        PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+        pictureUploadRequest.setFileUrl(fileUrl);
+        pictureUploadRequest.setPicName(namePrefix + (currentIndex + 1));
+
+        try {
+            PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+            log.info("图片上传成功, id = {}, url = {}", pictureVO.getId(), fileUrl);
+            return true;
+        } catch (Exception e) {
+            log.error("图片上传失败, url: {}", fileUrl, e);
+            return false;
+        }
+    }
+//    public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+//        // ============ 第一步：获取请求参数 ============
+//        // 获取搜索关键词，比如 "风景"、"猫咪"
+//        String searchText = pictureUploadByBatchRequest.getSearchText();
+//        // 获取要抓取的图片数量，比如 10
+//        Integer count = pictureUploadByBatchRequest.getCount();
+//        // 校验需要获取数量不能超过30张（防止请求过多）
+//        ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
+//        //  获取图片名称前缀；作用：如搜索蔡徐坤，可以设置名称前缀为坤，后续拼接后则图片名称为：坤1.jpg
+//        //                      也可以设置前缀为搜索词，直接就是蔡徐坤1.jpg
+//        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+//        // 如果前缀为空，则使用搜索词作为前缀
+//        if (StrUtil.isBlank(namePrefix)) {
+//            namePrefix = searchText;
+//        }
+//
+//        // ============ 第二步：构造Bing图片搜索URL ============
+//        // 拼接Bing图片搜索的API地址
+//        // 例如：https://cn.bing.com/images/async?q=风景&mmasync=1
+//        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+//
+//        // ============ 第三步：请求Bing并获取HTML页面 ============
+//        Document document;
+//        // 优化后：
+//        try {
+//            // 设置连接超时时间为 10 秒，读取超时时间为 10 秒
+//            document = Jsoup.connect(fetchUrl)
+//                    .timeout(10000)
+//                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36") // 伪装浏览器
+//                    .get();
+//        } catch (IOException e) {
+//            log.error("获取页面失败，网络超时或被拒绝", e);
+//            // 根据业务需求决定是抛出异常中断，还是返回空
+//            throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片搜索服务暂时不可用，请稍后重试");
+//        }
+////        try {
+////            // 使用jsoup发起HTTP请求，获取Bing搜索结果的HTML页面
+////            document = Jsoup.connect(fetchUrl).get();
+////        } catch (IOException e) {
+////            // 如果网络请求失败，记录错误日志
+////            log.error("获取页面失败", e);
+////            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+////        }
+//
+//        // ============ 第四步：从HTML中解析图片元素 ============
+//        // 查找HTML中class为"dgControl"的div元素（这个div包含了所有搜索结果图片）
+//        Element div = document.getElementsByClass("dgControl").first();
+//        // 如果没找到这个div，说明页面结构不对
+//        if (ObjUtil.isNull(div)) {
+//            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+//        }
+//        // 在div中查找所有class为"mimg"的img标签（这些就是图片元素）
+//        Elements imgElementList = div.select("img.mimg");
+//
+//        // ============ 第五步：遍历图片并逐个上传 ============
+//        int uploadCount = 0;  // 记录成功上传的图片数量
+//        for (Element imgElement : imgElementList) {
+//            // 从img标签中提取src属性（图片的URL地址）
+//            String fileUrl = imgElement.attr("src");
+//
+//            // 如果URL为空，跳过这张图片
+//            if (StrUtil.isBlank(fileUrl)) {
+//                log.info("当前链接为空，已跳过: {}", fileUrl);
+//                continue;
+//            }
+//
+//            // 清理URL：去掉?后面的参数部分
+//            // 例如：https://example.com/photo.jpg?param=123 -> https://example.com/photo.jpg
+//            int questionMarkIndex = fileUrl.indexOf("?");
+//            if (questionMarkIndex > -1) {
+//                fileUrl = fileUrl.substring(0, questionMarkIndex);
+//            }
+//
+//            // ============ 第六步：调用单张上传方法 ============
+//            // 创建一个上传请求对象（id为空表示新增）
+//            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+//            // 设置图片URL
+//            pictureUploadRequest.setFileUrl(fileUrl);
+//            // 设置图片名称，序号连续递增
+//            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
+//            try {
+//                // 调用uploadPicture方法上传这张图片到OSS
+//                PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+//                // 上传成功，记录日志
+//                log.info("图片上传成功, id = {}", pictureVO.getId());
+//                // 成功计数+1
+//                uploadCount++;
+//            } catch (Exception e) {
+//                // 如果某张图片上传失败，记录错误但继续处理下一张
+//                log.error("图片上传失败", e);
+//                continue;
+//            }
+//
+//            // ============ 第七步：检查是否达到指定数量 ============
+//            // 如果已成功上传的图片数量达到了用户要求的数量，就停止
+//            if (uploadCount >= count) {
+//                break;
+//            }
+//        }
+//
+//        // ============ 第八步：返回结果 ============
+//        // 返回实际成功上传的图片数量
+//        return uploadCount;
+//    }
 
     /**
      * 构建图片查询条件（QueryWrapper）
