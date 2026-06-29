@@ -51,9 +51,10 @@
     <PictureSearchForm :onSearch="onSearch" />
     <div style="margin-bottom: 16px" />
     <!-- 按颜色搜索，跟其他搜索条件独立 -->
-    <a-form-item label="按颜色搜索">
-      <color-picker format="hex" @pureColorChange="onColorChange" />
-    </a-form-item>
+<!--    备注：这里我后端没完成按颜色搜索，所以直接注释，前端不显示，逻辑保留-->
+<!--    <a-form-item label="按颜色搜索">-->
+<!--      <color-picker format="hex" @pureColorChange="onColorChange" />-->
+<!--    </a-form-item>-->
     <!-- 图片列表 -->
     <PictureList
       :dataList="dataList"
