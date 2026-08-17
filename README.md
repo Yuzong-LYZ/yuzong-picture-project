@@ -1,4 +1,4 @@
-# 灵图云库 —— 智能协同云图库平台
+# 灵图云库 
 
 基于Vue 3 + Spring Boot + OSS + WebSocket的智能协同云图库：《灵图云库》
 
